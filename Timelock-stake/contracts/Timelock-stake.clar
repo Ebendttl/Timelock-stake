@@ -124,3 +124,29 @@
         )
     )
 )
+
+;; Early unstake (forfeit rewards)
+(define-public (emergency-unstake)
+    (let
+        (
+            (stake (unwrap! (get-stake tx-sender) err-no-stake-found))
+            (amount (get amount stake))
+        )
+        ;; Check if not already claimed
+        (asserts! (not (get claimed stake)) err-no-stake-found)
+        
+        ;; Return only original stake amount
+        (try! (as-contract (stx-transfer? amount tx-sender tx-sender)))
+        
+        ;; Update stake to claimed
+        (map-set stakes
+            tx-sender
+            (merge stake { claimed: true })
+        )
+        
+        ;; Update total staked
+        (var-set total-staked (- (var-get total-staked) amount))
+        
+        (ok amount)
+    )
+)
